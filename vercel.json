@@ -1,5 +1,7 @@
-"rewrites": [
-  { "source": "/login", "destination": "/login/" },
-  { "source": "/account", "destination": "/account/" },
-  { "source": "/(.*)", "destination": "https://alikernel.blogspot.com/$1" }
-]
+{
+  "rewrites": [
+    { "source": "/login", "destination": "/login/index.html" },
+    { "source": "/account", "destination": "/account/index.html" },
+    { "source": "/(.*)", "destination": "https://alikernel.blogspot.com/$1" }
+  ]
+}
