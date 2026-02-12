@@ -1,0 +1,28 @@
+{
+  "rewrites": [
+    {
+      "source": "/login",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/account",
+      "destination": "/account.html"
+    },
+    {
+      "source": "/auth.js",
+      "destination": "/auth.js"
+    },
+    {
+      "source": "/style.css",
+      "destination": "/style.css"
+    },
+    {
+      "source": "/",
+      "destination": "https://alikernel.blogspot.com/"
+    },
+    {
+      "source": "/:path*",
+      "destination": "https://alikernel.blogspot.com/:path*"
+    }
+  ]
+}

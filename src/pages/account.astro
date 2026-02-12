@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حسابي - علي كيرنل</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" type="image/x-icon" href="https://www.alikernel.com/favicon.ico">
+</head>
+<body data-theme="dark">
+
+    <div class="page-wrapper">
+        
+        <!-- Header -->
+<header class="site-header">
+    <div class="header-content">
+        <a href="https://www.alikernel.com" class="header-logo-link">
+            <svg class="header-logo-icon" viewBox="0 0 124 124" fill="none">
+                <rect width="124" height="124" rx="24" fill="#F97316"/>
+                <path d="M19.375 36.782v63.843a4 4 0 0 0 4 4h63.843c3.564 0 5.348-4.309 2.829-6.828L26.203 33.953c-2.52-2.52-6.828-.735-6.828 2.829" fill="#fff"/>
+                <circle cx="63.211" cy="37.539" r="18.164" fill="#000"/>
+                <rect opacity=".4" x="81.133" y="80.72" width="17.569" height="17.388" rx="4" transform="rotate(-45 81.133 80.72)" fill="#FDBA74"/>
+            </svg>
+            <span>علي كيرنل</span>
+        </a>
+    </div>
+</header>
+
+        <!-- Main Content -->
+        <main class="page-content">
+            <div class="account-container">
+                
+                <!-- Account Header -->
+                <div class="account-header">
+                    <h2>حساب</h2>
+                    <p>عرض وإدارة حسابك</p>
+                </div>
+
+                <!-- User Details -->
+                <section class="user-details">
+                    <div class="user-info">
+                        <h3 id="account-name">...</h3>
+                        <p id="account-email"></p>
+                        <p id="account-joined-date"></p>
+                    </div>
+                        <img id="account-avatar" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="صورة المستخدم">
+                </section>
+
+                <!-- Sessions -->
+                <div class="sessions-title">الأجهزة المتصلة</div>
+                <div class="sessions-list" id="sessions-list">
+                    <div class="loading-text">جاري التحميل...</div>
+                </div>
+
+                <!-- Actions -->
+                <div class="account-actions">
+                    <button class="account-btn primary" id="logout-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" transform="scale(-1 1)"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9"/></svg>
+                        <span>الخروج</span>
+                    </button>
+                    <a href="https://www.alikernel.com" class="account-btn secondary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        <span>الرئيسية</span>
+                    </a>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="site-footer">
+            <div class="footer-content">
+                <div class="footer-logo-section">
+                    <a href="https://www.alikernel.com" class="footer-logo-link">
+                        <svg class="footer-logo-icon" viewBox="0 0 124 124" fill="none">
+                            <rect width="124" height="124" rx="24" fill="#F97316"/>
+                            <path d="M19.375 36.782v63.843a4 4 0 0 0 4 4h63.843c3.564 0 5.348-4.309 2.829-6.828L26.203 33.953c-2.52-2.52-6.828-.735-6.828 2.829" fill="#fff"/>
+                            <circle cx="63.211" cy="37.539" r="18.164" fill="#000"/>
+                            <rect opacity=".4" x="81.133" y="80.72" width="17.569" height="17.388" rx="4" transform="rotate(-45 81.133 80.72)" fill="#FDBA74"/>
+                        </svg>
+                        <span>علي كيرنل</span>
+                    </a>
+                    <a href="https://www.alikernel.com/p/privacy.html">الخصوصية</a>
+                    <a href="https://www.alikernel.com/p/terms.html">الشروط</a>
+                </div>
+                
+       <div class="theme-controls">
+    <button class="theme-btn" id="theme-btn-dark" onclick="setTheme('dark')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+            <path d="M19 3v4"/>
+            <path d="M21 5h-4"/>
+        </svg>
+        <div class="tooltip-box">مظلم<div class="tooltip-arrow"></div></div>
+    </button>
+    <button class="theme-btn" id="theme-btn-light" onclick="setTheme('light')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2"/>
+            <path d="M12 20v2"/>
+            <path d="m4.93 4.93 1.41 1.41"/>
+            <path d="m17.66 17.66 1.41 1.41"/>
+            <path d="M2 12h2"/>
+            <path d="M20 12h2"/>
+            <path d="m6.34 17.66-1.41 1.41"/>
+            <path d="m19.07 4.93-1.41 1.41"/>
+        </svg>
+        <div class="tooltip-box">نهار<div class="tooltip-arrow"></div></div>
+    </button>
+    <button class="theme-btn" id="theme-btn-system" onclick="setTheme('default')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        <div class="tooltip-box">تلقائي<div class="tooltip-arrow"></div></div>
+    </button>
+</div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="custom-confirm-modal" class="custom-modal-overlay hidden">
+        <div class="custom-modal-content">
+            <h2 id="modal-title">هل أنت متأكد؟</h2>
+            <p id="custom-modal-text"></p>
+            <div class="custom-modal-actions">
+                <button id="custom-modal-cancel-btn" class="modal-btn secondary">إلغاء</button>
+                <button id="custom-modal-confirm-btn" class="modal-btn primary">استمرار</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/auth.js"></script>
+    <script>
+    // Theme with active button and system detection
+    function setTheme(theme) {
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        
+        // إزالة active من كل الأزرار
+        document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+        
+        // إضافة active للزر المحدد
+        if (theme === 'dark') {
+            document.getElementById('theme-btn-dark').classList.add('active');
+        } else if (theme === 'light') {
+            document.getElementById('theme-btn-light').classList.add('active');
+        } else {
+            document.getElementById('theme-btn-system').classList.add('active');
+        }
+    }
+    
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme') || 'default';
+    setTheme(savedTheme);
+    
+    // Listen for system theme changes (for default/auto mode)
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        if (document.body.getAttribute('data-theme') === 'default') {
+            // Force re-apply to trigger CSS media query
+            document.body.setAttribute('data-theme', 'default');
+        }
+    });
+</script>
+</body>
+</html>
