@@ -26,16 +26,20 @@ window.addEventListener('load', function() {
         var photoURL = localStorage.getItem("userPhotoURL");
         var lastUid = localStorage.getItem("last_uid");
         
+        // عناصر الهيدر (لصفحة تسجيل الدخول والصفحات الأخرى)
         var userAvatarIcon = document.getElementById("user-avatar-icon");
         var profileIcon = document.getElementById("profile-icon");
         var userMenu = document.getElementById("user-menu");
         var guestMenu = document.getElementById("guest-menu");
+        
+        // عناصر صفحة الحساب
         var accountAvatar = document.getElementById("account-avatar");
         var accountName = document.getElementById("account-name");
         var accountEmail = document.getElementById("account-email");
         var accountJoined = document.getElementById("account-joined-date");
         var sessionsList = document.getElementById("sessions-list");
 
+        // استعادة حالة تسجيل الدخول
         if (lastUid && photoURL && photoURL !== "null") {
             if (userAvatarIcon) {
                 userAvatarIcon.src = photoURL;
@@ -46,9 +50,15 @@ window.addEventListener('load', function() {
                 profileIcon.classList.add("hidden");
                 profileIcon.style.setProperty('display', 'none', 'important');
             }
-            if (userMenu) userMenu.style.setProperty('display', 'block', 'important');
-            if (guestMenu) guestMenu.style.setProperty('display', 'none', 'important');
-            if (accountAvatar) accountAvatar.src = photoURL;
+            if (userMenu) {
+                userMenu.style.setProperty('display', 'block', 'important');
+            }
+            if (guestMenu) {
+                guestMenu.style.setProperty('display', 'none', 'important');
+            }
+            if (accountAvatar) {
+                accountAvatar.src = photoURL;
+            }
         } else {
             if (userAvatarIcon) {
                 userAvatarIcon.style.setProperty('display', 'none', 'important');
@@ -58,10 +68,15 @@ window.addEventListener('load', function() {
                 profileIcon.style.setProperty('display', 'block', 'important');
                 profileIcon.classList.remove("hidden");
             }
-            if (userMenu) userMenu.style.setProperty('display', 'none', 'important');
-            if (guestMenu) guestMenu.style.setProperty('display', 'block', 'important');
+            if (userMenu) {
+                userMenu.style.setProperty('display', 'none', 'important');
+            }
+            if (guestMenu) {
+                guestMenu.style.setProperty('display', 'block', 'important');
+            }
         }
 
+        // استعادة بيانات صفحة الحساب من الذاكرة المؤقتة (Cache)
         var cachedName = localStorage.getItem("userDisplayName");
         var cachedEmail = localStorage.getItem("userEmail");
         var cachedJoined = localStorage.getItem("userJoinedDate");
@@ -94,19 +109,18 @@ window.addEventListener('load', function() {
             this._deletingSession = false;
             this.currentNonce = null;
             this.currentHashedNonce = null;
-            this._isSigningIn = false;
+            this._isSigningIn = false; // لمنع التكرار
 
-            this.config = {
-                url: "https://rxevykpywwbqfozjgxti.supabase.co",
-                key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4ZXZ5a3B5d3dicWZvempneHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2NzAxNjQsImV4cCI6MjA4MjI0NjE2NH0.93uW6maT-L23GQ77HxJoihjIG-DTmciDQlPE3s0b64U",
-                googleClientId: "617149480177-aimcujc67q4307sk43li5m6pr54vj1jv.apps.googleusercontent.com",
-                paths: { 
-                    home: "https://www.alikernel.com",
-                    account: "/account",
-                    login: "/login"
-                }
-            };
-
+this.config = {
+    url: "https://rxevykpywwbqfozjgxti.supabase.co",
+    key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4ZXZ5a3B5d3dicWZvempneHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2NzAxNjQsImV4cCI6MjA4MjI0NjE2NH0.93uW6maT-L23GQ77HxJoihjIG-DTmciDQlPE3s0b64U",
+    googleClientId: "617149480177-aimcujc67q4307sk43li5m6pr54vj1jv.apps.googleusercontent.com",
+    paths: { 
+        home: "https://www.alikernel.com",
+        account: "/account",
+        login: "/login"
+    }
+};
             this.icons = {
                 clock: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>',
                 device: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"></path><path d="M10 19v-3.96 3.15"></path><path d="M7 19h5"></path><rect width="6" height="10" x="16" y="12" rx="2"></rect></svg>',
@@ -229,9 +243,6 @@ window.addEventListener('load', function() {
             localStorage.setItem("userEmail", user.email || '');
             localStorage.setItem("last_uid", user.id);
             
-            localStorage.setItem('auth_event', JSON.stringify({ type: 'login', timestamp: Date.now() }));
-            setTimeout(function() { localStorage.removeItem('auth_event'); }, 100);
-            
             var date = new Date(user.created_at);
             var formatted = date.toLocaleString('ar-u-nu-latn', {
                 year: 'numeric', month: 'numeric', day: 'numeric',
@@ -248,9 +259,6 @@ window.addEventListener('load', function() {
             localStorage.removeItem("userSessionsHTMLCache");
             localStorage.removeItem("last_uid");
             localStorage.removeItem("supabaseSessionId");
-            
-            localStorage.setItem('auth_event', JSON.stringify({ type: 'logout', timestamp: Date.now() }));
-            setTimeout(function() { localStorage.removeItem('auth_event'); }, 100);
         }
 
         showGuestUI() {
@@ -385,26 +393,11 @@ window.addEventListener('load', function() {
         setupCrossTabSync() {
             var self = this;
             window.addEventListener('storage', function(event) {
-                if (event.key === 'auth_event' && event.newValue) {
-                    try {
-                        var authEvent = JSON.parse(event.newValue);
-                        if (authEvent.type === 'login') {
-                            window.location.reload();
-                        } else if (authEvent.type === 'logout') {
-                            self.showGuestUI();
-                            window.location.reload();
-                        }
-                    } catch (e) {}
-                    return;
-                }
-                
                 if (event.key === 'last_uid') {
                     if (!event.newValue && event.oldValue) {
-                        self.clearCache();
                         self.showGuestUI();
-                        window.location.reload();
-                    } else if (event.newValue && event.newValue !== event.oldValue) {
-                        window.location.reload();
+                    } else if (event.newValue !== event.oldValue) {
+                        location.reload();
                     }
                 }
                 if (event.key === 'session_deleted') {
@@ -431,18 +424,8 @@ window.addEventListener('load', function() {
                 var target = e.target.closest('button, a');
                 if (!target) return;
 
-                var isLogoutButton = target.id === "logout-btn" || 
-                    target.classList.contains('logout-btn') ||
-                    target.getAttribute('data-action') === 'logout' ||
-                    (function() {
-                        var text = (target.textContent || '').trim();
-                        return text === 'خروج' || text === 'تسجيل الخروج' || text.includes('خروج');
-                    })();
-
-                if (isLogoutButton) {
+                if (target.id === "logout-btn" || (target.textContent && target.textContent.trim() === "الخروج")) {
                     e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
                     self.localLogout();
                     return;
                 }
@@ -462,16 +445,16 @@ window.addEventListener('load', function() {
         }
 
         loginWithGoogle() {
-            if (!this.supabase) return;
-            this.supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: { 
-                    redirectTo: window.location.origin,
-                    queryParams: { prompt: 'select_account' },
-                    skipBrowserRedirect: false
-                }
-            });
+    if (!this.supabase) return;
+    this.supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { 
+            redirectTo: window.location.origin + '/account',
+            queryParams: { prompt: 'select_account' },
+            skipBrowserRedirect: false
         }
+    });
+}
 
         loginWithGitHub() {
             if (!this.supabase) return;
@@ -525,7 +508,7 @@ window.addEventListener('load', function() {
             if (window.location.pathname.includes('account')) {
                 window.location.href = this.config.paths.login;
             } else {
-                window.location.href = this.config.paths.home;
+                location.reload();
             }
         }
 
@@ -636,12 +619,12 @@ window.addEventListener('load', function() {
             var sid = localStorage.getItem("supabaseSessionId");
             if (!sid) return;
             
-            if (this.globalChannel) {
-                this.supabase.removeChannel(this.globalChannel);
+            if (self.globalChannel) {
+                self.supabase.removeChannel(self.globalChannel);
             }
             
             var channelName = 'my-session-' + sid + '-' + Date.now();
-            this.globalChannel = this.supabase.channel(channelName)
+            self.globalChannel = self.supabase.channel(channelName)
                 .on('postgres_changes', {
                     event: 'DELETE',
                     schema: 'public',
@@ -723,14 +706,15 @@ window.addEventListener('load', function() {
         setupGoogleOneTap() {
             var self = this;
             if (localStorage.getItem("last_uid")) return;
+            if (window.location.pathname.includes('/account')) return;
 
             var checkGoogle = function() {
                 if (!window.google || !window.google.accounts) {
-                    setTimeout(checkGoogle, 100);
+                    setTimeout(checkGoogle, 500);
                     return;
                 }
                 if (!self.supabase) {
-                    setTimeout(checkGoogle, 100);
+                    setTimeout(checkGoogle, 500);
                     return;
                 }
                 
@@ -766,7 +750,11 @@ window.addEventListener('load', function() {
                                     self.handleSessionSync(result.data.user);
                                     try { window.google.accounts.id.cancel(); } catch (e) {}
                                     setTimeout(function() {
-                                        window.location.href = self.config.paths.home;
+                                        if (window.location.pathname.includes('login')) {
+                                            window.location.href = '/';
+                                        } else {
+                                            window.location.reload();
+                                        }
                                     }, 300);
                                 }
                             });
@@ -778,6 +766,7 @@ window.addEventListener('load', function() {
                             nonce: hashedNonce,
                             auto_select: false,
                             cancel_on_tap_outside: true,
+                            use_fedcm_for_prompt: true,
                             context: 'signin'
                         });
                         
