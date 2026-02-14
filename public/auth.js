@@ -383,13 +383,9 @@ window.addEventListener('load', function() {
                     if (!event.newValue && event.oldValue) {
                         self.clearCache();
                         self.showGuestUI();
-                        if (window.location.pathname.includes('account')) {
-                            window.location.href = self.config.paths.login;
-                        } else {
-                            location.reload();
-                        }
+                        window.location.reload();
                     } else if (event.newValue && event.newValue !== event.oldValue) {
-                        location.reload();
+                        window.location.reload();
                     }
                 }
                 if (event.key === 'session_deleted') {
@@ -416,10 +412,14 @@ window.addEventListener('load', function() {
                 var target = e.target.closest('button, a');
                 if (!target) return;
 
-                if (target.id === "logout-btn" || 
+                var isLogoutButton = target.id === "logout-btn" || 
                     target.classList.contains('logout-btn') ||
-                    (target.textContent && target.textContent.includes("خروج"))) {
+                    target.getAttribute('data-action') === 'logout' ||
+                    (target.textContent && target.textContent.includes("خروج"));
+
+                if (isLogoutButton) {
                     e.preventDefault();
+                    e.stopPropagation();
                     self.localLogout();
                     return;
                 }
@@ -443,7 +443,7 @@ window.addEventListener('load', function() {
             this.supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: { 
-                    redirectTo: window.location.origin + '/account',
+                    redirectTo: window.location.origin,
                     queryParams: { prompt: 'select_account' },
                     skipBrowserRedirect: false
                 }
@@ -454,7 +454,7 @@ window.addEventListener('load', function() {
             if (!this.supabase) return;
             this.supabase.auth.signInWithOAuth({
                 provider: 'github',
-                options: { redirectTo: window.location.origin + '/account' }
+                options: { redirectTo: window.location.origin }
             });
         }
 
@@ -743,7 +743,7 @@ window.addEventListener('load', function() {
                                     self.handleSessionSync(result.data.user);
                                     try { window.google.accounts.id.cancel(); } catch (e) {}
                                     setTimeout(function() {
-                                        window.location.reload();
+                                        window.location.href = self.config.paths.home;
                                     }, 300);
                                 }
                             });
