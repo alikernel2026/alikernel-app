@@ -1,13 +1,7 @@
 // ========================================================
-// سكربت المصادقة المحسن - Supabase Auth Manager
-// الإصدار: 2.0 - مصحح بالكامل
+// 1. تحميل مكتبات Supabase و Google
 // ========================================================
-
-// ========================================================
-// 1. تحميل مكتبات Supabase و Google فوراً (بدون انتظار load)
-// ========================================================
-(function() {
-    // تحميل Supabase
+window.addEventListener('load', function() {
     var supabaseScript = document.createElement('script');
     supabaseScript.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
     supabaseScript.onload = function() {
@@ -15,13 +9,14 @@
             window.supabaseAuth.init();
         }
     };
-    document.head.appendChild(supabaseScript);
+    document.body.appendChild(supabaseScript);
 
-    // تحميل Google فوراً - بدون async/defer لإظهار One Tap أسرع
     var googleScript = document.createElement('script');
     googleScript.src = 'https://accounts.google.com/gsi/client';
-    document.head.appendChild(googleScript);
-})();
+    googleScript.async = true;
+    googleScript.defer = true;
+    document.body.appendChild(googleScript);
+});
 
 // ========================================================
 // 2. سكربت الاستعادة الفوري (لمنع وميض الهيدر)
@@ -84,7 +79,7 @@
 })();
 
 // ========================================================
-// 3. الكود الرئيسي (Supabase Manager) - الإصدار المحسن
+// 3. الكود الرئيسي (Supabase Manager)
 // ========================================================
 (function() {
     class SupabaseAuthManager {
@@ -95,7 +90,7 @@
             this.channel = null;
             this.globalChannel = null;
             this.initializationAttempts = 0;
-            this.maxRetries = 10;
+            this.maxRetries = 3;
             this._deletingSession = false;
             this.currentNonce = null;
             this.currentHashedNonce = null;
@@ -120,103 +115,9 @@
                 check: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4L9 15"></path><path d="M21 19L3 19"></path><path d="M9 15L4 10"></path></svg>'
             };
 
-            this.setupGoogleOneTapEarly();
             this.setupCrossTabSync();
             this.setupBeforeUnload();
             this.bindUserActions();
-        }
-
-        setupGoogleOneTapEarly() {
-            var self = this;
-            if (localStorage.getItem("last_uid")) return;
-            
-            var checkAndInit = function() {
-                if (!window.google || !window.google.accounts) {
-                    setTimeout(checkAndInit, 100);
-                    return;
-                }
-                if (!self.supabase) {
-                    if (!self.isInitialized) {
-                        setTimeout(checkAndInit, 100);
-                        return;
-                    }
-                }
-                self.initGoogleOneTap();
-            };
-            checkAndInit();
-        }
-
-        initGoogleOneTap() {
-            var self = this;
-            if (localStorage.getItem("last_uid")) return;
-            
-            self.generateNonce().then(function(nonceData) {
-                var nonce = nonceData[0];
-                var hashedNonce = nonceData[1];
-                
-                if (!nonce || !hashedNonce) return;
-                
-                try {
-                    window.handleGoogleSignIn = function(response) {
-                        if (self._isSigningIn) return;
-                        self._isSigningIn = true;
-                        
-                        if (!response || !response.credential) {
-                            self._isSigningIn = false;
-                            return;
-                        }
-                        
-                        var trySignIn = function() {
-                            if (!self.supabase) {
-                                setTimeout(trySignIn, 100);
-                                return;
-                            }
-                            
-                            self.supabase.auth.signInWithIdToken({
-                                provider: 'google',
-                                token: response.credential,
-                                nonce: self.currentNonce
-                            }).then(function(result) {
-                                if (result.error) {
-                                    alert('فشل تسجيل الدخول: ' + result.error.message);
-                                    self._isSigningIn = false;
-                                    return;
-                                }
-                                if (result.data && result.data.user) {
-                                    self.cacheUserData(result.data.user);
-                                    self.updateHeaderUI(result.data.user);
-                                    self.handleSessionSync(result.data.user);
-                                    
-                                    localStorage.setItem('auth_event', JSON.stringify({ 
-                                        type: 'login', 
-                                        uid: result.data.user.id,
-                                        timestamp: Date.now() 
-                                    }));
-                                    setTimeout(function() { localStorage.removeItem('auth_event'); }, 100);
-                                    
-                                    try { window.google.accounts.id.cancel(); } catch (e) {}
-                                    self._isSigningIn = false;
-                                }
-                            });
-                        };
-                        trySignIn();
-                    };
-                    
-                    window.google.accounts.id.initialize({
-                        client_id: self.config.googleClientId,
-                        callback: window.handleGoogleSignIn,
-                        nonce: hashedNonce,
-                        auto_select: false,
-                        cancel_on_tap_outside: true,
-                        context: 'signin'
-                    });
-                    
-                    window.google.accounts.id.prompt();
-                    
-                } catch (error) {
-                    console.error('Error init One Tap:', error);
-                }
-            });
         }
 
         generateNonce() {
@@ -252,7 +153,7 @@
                     if (!window.supabase || !window.supabase.createClient) {
                         if (self.initializationAttempts < self.maxRetries) {
                             self.initializationAttempts++;
-                            setTimeout(function() { self.init().then(resolve).catch(reject); }, 200);
+                            setTimeout(function() { self.init().then(resolve).catch(reject); }, 1000);
                             return;
                         }
                         reject(new Error('Supabase library not loaded'));
@@ -260,7 +161,11 @@
                     }
 
                     self.supabase = window.supabase.createClient(self.config.url, self.config.key, {
-                        realtime: { params: { eventsPerSecond: 10 } }
+                        realtime: {
+                            params: {
+                                eventsPerSecond: 10
+                            }
+                        }
                     });
                     
                     self.supabase.auth.onAuthStateChange(function(event, session) {
@@ -297,6 +202,7 @@
                             self.startGlobalSessionMonitoring(user);
                         } else {
                             self.showGuestUI();
+                            self.setupGoogleOneTap();                       
                         }
 
                         self.isInitialized = true;
@@ -323,6 +229,9 @@
             localStorage.setItem("userEmail", user.email || '');
             localStorage.setItem("last_uid", user.id);
             
+            localStorage.setItem('auth_event', JSON.stringify({ type: 'login', timestamp: Date.now() }));
+            setTimeout(function() { localStorage.removeItem('auth_event'); }, 100);
+            
             var date = new Date(user.created_at);
             var formatted = date.toLocaleString('ar-u-nu-latn', {
                 year: 'numeric', month: 'numeric', day: 'numeric',
@@ -340,10 +249,7 @@
             localStorage.removeItem("last_uid");
             localStorage.removeItem("supabaseSessionId");
             
-            localStorage.setItem('auth_event', JSON.stringify({ 
-                type: 'logout', 
-                timestamp: Date.now() 
-            }));
+            localStorage.setItem('auth_event', JSON.stringify({ type: 'logout', timestamp: Date.now() }));
             setTimeout(function() { localStorage.removeItem('auth_event'); }, 100);
         }
 
@@ -357,13 +263,6 @@
             if (av) { av.style.setProperty('display', 'none', 'important'); av.classList.add("hidden"); av.src = ""; }
             if (um) um.style.setProperty('display', 'none', 'important');
             if (gm) gm.style.setProperty('display', 'block', 'important');
-            
-            var self = this;
-            setTimeout(function() {
-                if (!localStorage.getItem("last_uid")) {
-                    self.initGoogleOneTap();
-                }
-            }, 500);
         }
 
         updateHeaderUI(user) {
@@ -492,13 +391,10 @@
                         if (authEvent.type === 'login') {
                             window.location.reload();
                         } else if (authEvent.type === 'logout') {
-                            self.clearCache();
                             self.showGuestUI();
                             window.location.reload();
                         }
-                    } catch (e) {
-                        console.error('Error parsing auth event:', e);
-                    }
+                    } catch (e) {}
                     return;
                 }
                 
@@ -511,7 +407,6 @@
                         window.location.reload();
                     }
                 }
-                
                 if (event.key === 'session_deleted') {
                     var deletedId = event.newValue;
                     var mySessionId = localStorage.getItem("supabaseSessionId");
@@ -532,29 +427,16 @@
 
         bindUserActions() {
             var self = this;
-            
             document.addEventListener('click', function(e) {
-                var target = e.target.closest('button, a, [role="button"], .logout-btn, [data-logout]');
+                var target = e.target.closest('button, a');
                 if (!target) return;
 
-                var isLogoutButton = 
-                    target.id === "logout-btn" ||
-                    target.id === "logout_button" ||
-                    target.id === "header-logout-btn" ||
+                var isLogoutButton = target.id === "logout-btn" || 
                     target.classList.contains('logout-btn') ||
-                    target.classList.contains('logout_button') ||
-                    target.classList.contains('btn-logout') ||
                     target.getAttribute('data-action') === 'logout' ||
-                    target.getAttribute('data-logout') === 'true' ||
-                    target.hasAttribute('data-logout') ||
                     (function() {
-                        var text = target.textContent || target.innerText || '';
-                        var btnText = text.trim();
-                        return btnText === 'خروج' || 
-                               btnText === 'تسجيل الخروج' ||
-                               btnText === 'Logout' ||
-                               btnText.includes('خروج') ||
-                               btnText.includes('تسجيل خروج');
+                        var text = (target.textContent || '').trim();
+                        return text === 'خروج' || text === 'تسجيل الخروج' || text.includes('خروج');
                     })();
 
                 if (isLogoutButton) {
@@ -562,7 +444,7 @@
                     e.stopPropagation();
                     e.stopImmediatePropagation();
                     self.localLogout();
-                    return false;
+                    return;
                 }
 
                 if (target.id === "google-signin-btn-popup") {
@@ -836,6 +718,77 @@
             newCancelBtn.onclick = function() {
                 modal.classList.add("hidden");
             };
+        }
+
+        setupGoogleOneTap() {
+            var self = this;
+            if (localStorage.getItem("last_uid")) return;
+
+            var checkGoogle = function() {
+                if (!window.google || !window.google.accounts) {
+                    setTimeout(checkGoogle, 100);
+                    return;
+                }
+                if (!self.supabase) {
+                    setTimeout(checkGoogle, 100);
+                    return;
+                }
+                
+                self.generateNonce().then(function(nonceData) {
+                    var nonce = nonceData[0];
+                    var hashedNonce = nonceData[1];
+                    
+                    if (!nonce || !hashedNonce) return;
+                    
+                    try {
+                        window.handleGoogleSignIn = function(response) {
+                            if (self._isSigningIn) return;
+                            self._isSigningIn = true;
+                            
+                            if (!response || !response.credential) {
+                                self._isSigningIn = false;
+                                return;
+                            }
+                            
+                            self.supabase.auth.signInWithIdToken({
+                                provider: 'google',
+                                token: response.credential,
+                                nonce: self.currentNonce
+                            }).then(function(result) {
+                                if (result.error) {
+                                    alert('فشل تسجيل الدخول: ' + result.error.message);
+                                    self._isSigningIn = false;
+                                    return;
+                                }
+                                if (result.data && result.data.user) {
+                                    self.cacheUserData(result.data.user);
+                                    self.updateHeaderUI(result.data.user);
+                                    self.handleSessionSync(result.data.user);
+                                    try { window.google.accounts.id.cancel(); } catch (e) {}
+                                    setTimeout(function() {
+                                        window.location.href = self.config.paths.home;
+                                    }, 300);
+                                }
+                            });
+                        };
+                        
+                        window.google.accounts.id.initialize({
+                            client_id: self.config.googleClientId,
+                            callback: window.handleGoogleSignIn,
+                            nonce: hashedNonce,
+                            auto_select: false,
+                            cancel_on_tap_outside: true,
+                            context: 'signin'
+                        });
+                        
+                        window.google.accounts.id.prompt();
+                        
+                    } catch (error) {
+                        console.error('Error init One Tap:', error);
+                    }
+                });
+            };
+            checkGoogle();
         }
 
         getOS() {
