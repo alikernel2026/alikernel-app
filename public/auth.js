@@ -26,20 +26,16 @@ window.addEventListener('load', function() {
         var photoURL = localStorage.getItem("userPhotoURL");
         var lastUid = localStorage.getItem("last_uid");
         
-        // عناصر الهيدر (لصفحة تسجيل الدخول والصفحات الأخرى)
         var userAvatarIcon = document.getElementById("user-avatar-icon");
         var profileIcon = document.getElementById("profile-icon");
         var userMenu = document.getElementById("user-menu");
         var guestMenu = document.getElementById("guest-menu");
-        
-        // عناصر صفحة الحساب
         var accountAvatar = document.getElementById("account-avatar");
         var accountName = document.getElementById("account-name");
         var accountEmail = document.getElementById("account-email");
         var accountJoined = document.getElementById("account-joined-date");
         var sessionsList = document.getElementById("sessions-list");
 
-        // استعادة حالة تسجيل الدخول
         if (lastUid && photoURL && photoURL !== "null") {
             if (userAvatarIcon) {
                 userAvatarIcon.src = photoURL;
@@ -50,15 +46,9 @@ window.addEventListener('load', function() {
                 profileIcon.classList.add("hidden");
                 profileIcon.style.setProperty('display', 'none', 'important');
             }
-            if (userMenu) {
-                userMenu.style.setProperty('display', 'block', 'important');
-            }
-            if (guestMenu) {
-                guestMenu.style.setProperty('display', 'none', 'important');
-            }
-            if (accountAvatar) {
-                accountAvatar.src = photoURL;
-            }
+            if (userMenu) userMenu.style.setProperty('display', 'block', 'important');
+            if (guestMenu) guestMenu.style.setProperty('display', 'none', 'important');
+            if (accountAvatar) accountAvatar.src = photoURL;
         } else {
             if (userAvatarIcon) {
                 userAvatarIcon.style.setProperty('display', 'none', 'important');
@@ -68,15 +58,10 @@ window.addEventListener('load', function() {
                 profileIcon.style.setProperty('display', 'block', 'important');
                 profileIcon.classList.remove("hidden");
             }
-            if (userMenu) {
-                userMenu.style.setProperty('display', 'none', 'important');
-            }
-            if (guestMenu) {
-                guestMenu.style.setProperty('display', 'block', 'important');
-            }
+            if (userMenu) userMenu.style.setProperty('display', 'none', 'important');
+            if (guestMenu) guestMenu.style.setProperty('display', 'block', 'important');
         }
 
-        // استعادة بيانات صفحة الحساب من الذاكرة المؤقتة (Cache)
         var cachedName = localStorage.getItem("userDisplayName");
         var cachedEmail = localStorage.getItem("userEmail");
         var cachedJoined = localStorage.getItem("userJoinedDate");
@@ -109,18 +94,19 @@ window.addEventListener('load', function() {
             this._deletingSession = false;
             this.currentNonce = null;
             this.currentHashedNonce = null;
-            this._isSigningIn = false; // لمنع التكرار
+            this._isSigningIn = false;
 
-this.config = {
-    url: "https://rxevykpywwbqfozjgxti.supabase.co",
-    key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4ZXZ5a3B5d3dicWZvempneHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2NzAxNjQsImV4cCI6MjA4MjI0NjE2NH0.93uW6maT-L23GQ77HxJoihjIG-DTmciDQlPE3s0b64U",
-    googleClientId: "617149480177-aimcujc67q4307sk43li5m6pr54vj1jv.apps.googleusercontent.com",
-    paths: { 
-        home: "https://www.alikernel.com",
-        account: "/account",
-        login: "/login"
-    }
-};
+            this.config = {
+                url: "https://rxevykpywwbqfozjgxti.supabase.co",
+                key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4ZXZ5a3B5d3dicWZvempneHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2NzAxNjQsImV4cCI6MjA4MjI0NjE2NH0.93uW6maT-L23GQ77HxJoihjIG-DTmciDQlPE3s0b64U",
+                googleClientId: "617149480177-aimcujc67q4307sk43li5m6pr54vj1jv.apps.googleusercontent.com",
+                paths: { 
+                    home: "https://www.alikernel.com",
+                    account: "/account",
+                    login: "/login"
+                }
+            };
+
             this.icons = {
                 clock: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="10"></circle></svg>',
                 device: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"></path><path d="M10 19v-3.96 3.15"></path><path d="M7 19h5"></path><rect width="6" height="10" x="16" y="12" rx="2"></rect></svg>',
@@ -395,8 +381,14 @@ this.config = {
             window.addEventListener('storage', function(event) {
                 if (event.key === 'last_uid') {
                     if (!event.newValue && event.oldValue) {
+                        self.clearCache();
                         self.showGuestUI();
-                    } else if (event.newValue !== event.oldValue) {
+                        if (window.location.pathname.includes('account')) {
+                            window.location.href = self.config.paths.login;
+                        } else {
+                            location.reload();
+                        }
+                    } else if (event.newValue && event.newValue !== event.oldValue) {
                         location.reload();
                     }
                 }
@@ -424,7 +416,9 @@ this.config = {
                 var target = e.target.closest('button, a');
                 if (!target) return;
 
-                if (target.id === "logout-btn" || (target.textContent && target.textContent.trim() === "الخروج")) {
+                if (target.id === "logout-btn" || 
+                    target.classList.contains('logout-btn') ||
+                    (target.textContent && target.textContent.includes("خروج"))) {
                     e.preventDefault();
                     self.localLogout();
                     return;
@@ -445,22 +439,22 @@ this.config = {
         }
 
         loginWithGoogle() {
-    if (!this.supabase) return;
-    this.supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { 
-            redirectTo: window.location.origin + '/account',
-            queryParams: { prompt: 'select_account' },
-            skipBrowserRedirect: false
+            if (!this.supabase) return;
+            this.supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: { 
+                    redirectTo: window.location.origin + '/account',
+                    queryParams: { prompt: 'select_account' },
+                    skipBrowserRedirect: false
+                }
+            });
         }
-    });
-}
 
         loginWithGitHub() {
             if (!this.supabase) return;
             this.supabase.auth.signInWithOAuth({
                 provider: 'github',
-                options: { redirectTo: window.location.origin }
+                options: { redirectTo: window.location.origin + '/account' }
             });
         }
 
@@ -508,7 +502,7 @@ this.config = {
             if (window.location.pathname.includes('account')) {
                 window.location.href = this.config.paths.login;
             } else {
-                location.reload();
+                window.location.href = this.config.paths.home;
             }
         }
 
@@ -706,7 +700,6 @@ this.config = {
         setupGoogleOneTap() {
             var self = this;
             if (localStorage.getItem("last_uid")) return;
-            if (window.location.pathname.includes('/account')) return;
 
             var checkGoogle = function() {
                 if (!window.google || !window.google.accounts) {
@@ -750,11 +743,7 @@ this.config = {
                                     self.handleSessionSync(result.data.user);
                                     try { window.google.accounts.id.cancel(); } catch (e) {}
                                     setTimeout(function() {
-                                        if (window.location.pathname.includes('login')) {
-                                            window.location.href = '/';
-                                        } else {
-                                            window.location.reload();
-                                        }
+                                        window.location.reload();
                                     }, 300);
                                 }
                             });
