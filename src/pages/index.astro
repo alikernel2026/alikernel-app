@@ -1,7 +1,35 @@
-<!DOCTYPE html>
-<html>
+---
+// هنا يمكنكِ جلب البيانات من Supabase أو بلوجر لاحقاً
+---
+<html lang="ar" dir="rtl">
 <head>
-<meta http-equiv="refresh" content="0;url=https://alikernel.blogspot.com">
+    <meta charset="UTF-8" />
+    <title>علي كيرنل - الصفحة الرئيسية</title>
+    <link rel="stylesheet" href="/style.css"> 
 </head>
-<body>Redirecting...</body>
+<body>
+    <header>
+        <div id="user-header">
+            <div id="profile-icon" style="display: none;">
+                <img id="user-avatar-icon" src="" alt="Avatar" width="40" style="border-radius: 50%;">
+                <span id="account-name"></span>
+            </div>
+
+            <div id="guest-menu">
+                <a href="/login" id="login-btn">تسجيل الدخول</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="grid-container">
+        <div class="card">
+            <img src="post-image.jpg" alt="موضوع">
+            <h3>عنوان الموضوع التجريبي</h3>
+            <p>وصف قصير للموضوع...</p>
+            <a href="#">اقرأ أكثر</a>
+        </div>
+    </main>
+
+    <script is:inline src="/auth.js"></script> 
+</body>
 </html>
