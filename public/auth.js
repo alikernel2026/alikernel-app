@@ -419,30 +419,42 @@ this.config = {
         }
 
         bindUserActions() {
-            var self = this;
-            document.addEventListener('click', function(e) {
-                var target = e.target.closest('button, a');
-                if (!target) return;
-
-                if (target.id === "logout-btn" || (target.textContent && target.textContent.trim() === "الخروج")) {
-                    e.preventDefault();
-                    self.localLogout();
-                    return;
-                }
-
-                if (target.id === "google-signin-btn-popup") {
-                    e.preventDefault();
-                    self.loginWithGoogle();
-                    return;
-                }
-                
-                if (target.id === "github-signin-btn") {
-                    e.preventDefault();
-                    self.loginWithGitHub();
-                    return;
-                }
-            }, true);
+    var self = this;
+    
+    // ✅ ربط مباشر بالزر
+    var checkLogoutBtn = function() {
+        var logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn && !logoutBtn.hasAttribute('data-bound')) {
+            logoutBtn.setAttribute('data-bound', 'true');
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                self.localLogout();
+            });
         }
+    };
+    
+    checkLogoutBtn();
+    setTimeout(checkLogoutBtn, 1000);
+    
+    // Event delegation للأزرار الأخرى
+    document.addEventListener('click', function(e) {
+        var target = e.target.closest('button, a');
+        if (!target) return;
+
+        if (target.id === "google-signin-btn-popup") {
+            e.preventDefault();
+            self.loginWithGoogle();
+            return;
+        }
+        
+        if (target.id === "github-signin-btn") {
+            e.preventDefault();
+            self.loginWithGitHub();
+            return;
+        }
+    }, true);
+}
 
         loginWithGoogle() {
     if (!this.supabase) return;
