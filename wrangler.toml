@@ -1,0 +1,9 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "alikernel-app"
+main = "./dist/_worker.js/index.js"
+compatibility_date = "2024-04-03"
+
+[[d1_databases]]
+binding = "DB"
+database_name ="alikernel-db"
+database_id ="6b363976-b0af-48bd-b328-e92949d88a16"

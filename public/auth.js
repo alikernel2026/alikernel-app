@@ -1,15 +1,15 @@
 // ========================================================
-// 1. تحميل مكتبات Supabase و Google
+// 1. تحميل مكتبة Better Auth Client و Google
 // ========================================================
 window.addEventListener('load', function() {
-    var supabaseScript = document.createElement('script');
-    supabaseScript.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-    supabaseScript.onload = function() {
-        if (window.supabaseAuth && window.supabaseAuth.init) {
-            window.supabaseAuth.init();
+    var betterAuthScript = document.createElement('script');
+    betterAuthScript.src = 'https://cdn.jsdelivr.net/npm/better-auth@1.4.18/dist/better-auth.client.min.js';
+    betterAuthScript.onload = function() {
+        if (window.betterAuth && window.betterAuth.init) {
+            window.betterAuth.init();
         }
     };
-    document.body.appendChild(supabaseScript);
+    document.body.appendChild(betterAuthScript);
 
     var googleScript = document.createElement('script');
     googleScript.src = 'https://accounts.google.com/gsi/client';
@@ -94,26 +94,24 @@ window.addEventListener('load', function() {
 })();
 
 // ========================================================
-// 3. الكود الرئيسي (Supabase Manager)
+// 3. الكود الرئيسي (Better Auth Manager)
 // ========================================================
 (function() {
-    class SupabaseAuthManager {
+    class BetterAuthManager {
         constructor() {
-            window.supabaseAuth = this;
-            this.supabase = null;
+            window.betterAuth = this;
+            this.authClient = null;
             this.isInitialized = false;
-            this.channel = null;
-            this.globalChannel = null;
             this.initializationAttempts = 0;
             this.maxRetries = 3;
             this._deletingSession = false;
             this.currentNonce = null;
             this.currentHashedNonce = null;
             this._isSigningIn = false;
+            this.sessionCheckInterval = null;
 
             this.config = {
-                url: "https://rxevykpywwbqfozjgxti.supabase.co",
-                key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4ZXZ5a3B5d3dicWZvempneHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2NzAxNjQsImV4cCI6MjA4MjI0NjE2NH0.93uW6maT-L23GQ77HxJoihjIG-DTmciDQlPE3s0b64U",
+                apiUrl: window.location.origin + "/api/auth",
                 googleClientId: "617149480177-aimcujc67q4307sk43li5m6pr54vj1jv.apps.googleusercontent.com",
                 paths: { 
                     home: "https://www.alikernel.com",
@@ -165,65 +163,37 @@ window.addEventListener('load', function() {
             
             return new Promise(function(resolve, reject) {
                 try {
-                    if (!window.supabase || !window.supabase.createClient) {
-                        if (self.initializationAttempts < self.maxRetries) {
-                            self.initializationAttempts++;
-                            setTimeout(function() { self.init().then(resolve).catch(reject); }, 1000);
-                            return;
-                        }
-                        reject(new Error('Supabase library not loaded'));
-                        return;
-                    }
-
-                    self.supabase = window.supabase.createClient(self.config.url, self.config.key, {
-                        realtime: {
-                            params: {
-                                eventsPerSecond: 10
-                            }
-                        }
-                    });
-                    
-                    self.supabase.auth.onAuthStateChange(function(event, session) {
-                        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session && session.user) {
-                            self.cacheUserData(session.user);
-                            self.updateHeaderUI(session.user);
-                            self.handleSessionSync(session.user);
-                        } else if (event === 'SIGNED_OUT') {
-                            self.clearCache(); 
-                            self.showGuestUI();
-                        }
-                    });
-
-                    self.supabase.auth.getUser().then(function(result) {
-                        var user = result.data.user;
+                    // فحص الجلسة الحالية
+                    self.getCurrentSession().then(function(session) {
                         var path = window.location.pathname;
 
-                        if (user && (path.includes('login'))) {
-                            self.cacheUserData(user);
-                            window.location.href = self.config.paths.home;
-                            return;
-                        }
+                        if (session && session.user) {
+                            if (path.includes('login')) {
+                                window.location.href = self.config.paths.home;
+                                return;
+                            }
 
-                        if (!user && (path.includes('account'))) {
-                            window.location.href = self.config.paths.login;
-                            return;
-                        }
-
-                        if (user) {
-                            self.cacheUserData(user);
-                            self.updateHeaderUI(user);
-                            self.setupAccountPage(user);
-                            self.handleSessionSync(user);
-                            self.startGlobalSessionMonitoring(user);
+                            self.cacheUserData(session.user);
+                            self.updateHeaderUI(session.user);
+                            self.setupAccountPage(session.user);
+                            self.handleSessionSync(session.user);
+                            self.startSessionPolling();
                         } else {
+                            if (path.includes('account')) {
+                                window.location.href = self.config.paths.login;
+                                return;
+                            }
+                            
                             self.showGuestUI();
-                            self.setupGoogleOneTap();                       
+                            self.setupGoogleOneTap();
                         }
 
                         self.isInitialized = true;
                         resolve();
                     }).catch(function(err) {
                         console.error('خطأ:', err);
+                        self.showGuestUI();
+                        self.setupGoogleOneTap();
                         reject(err);
                     });
 
@@ -234,22 +204,40 @@ window.addEventListener('load', function() {
             });
         }
 
+        getCurrentSession() {
+            var self = this;
+            return fetch(self.config.apiUrl + '/get-session', {
+                credentials: 'include'
+            }).then(function(res) {
+                if (!res.ok) return null;
+                return res.json();
+            }).then(function(data) {
+                if (data && data.session && data.user) {
+                    return { session: data.session, user: data.user };
+                }
+                return null;
+            }).catch(function() {
+                return null;
+            });
+        }
+
         cacheUserData(user) {
-            var photo = user.user_metadata ? (user.user_metadata.avatar_url || user.user_metadata.picture) : null;
-            var name = user.user_metadata ? (user.user_metadata.full_name || user.user_metadata.name) : null;
-            if (!name) name = user.email ? user.email.split('@')[0] : 'مستخدم';
+            var photo = user.image || null;
+            var name = user.name || (user.email ? user.email.split('@')[0] : 'مستخدم');
             
             if (photo) localStorage.setItem("userPhotoURL", photo);
             localStorage.setItem("userDisplayName", name);
             localStorage.setItem("userEmail", user.email || '');
             localStorage.setItem("last_uid", user.id);
             
-            var date = new Date(user.created_at);
-            var formatted = date.toLocaleString('ar-u-nu-latn', {
-                year: 'numeric', month: 'numeric', day: 'numeric',
-                hour: 'numeric', minute: 'numeric', hour12: true
-            }).replace('ص', 'صباحاً').replace('م', 'مساءً');
-            localStorage.setItem("userJoinedDate", "انضم في: " + formatted);
+            if (user.createdAt) {
+                var date = new Date(user.createdAt);
+                var formatted = date.toLocaleString('ar-u-nu-latn', {
+                    year: 'numeric', month: 'numeric', day: 'numeric',
+                    hour: 'numeric', minute: 'numeric', hour12: true
+                }).replace('ص', 'صباحاً').replace('م', 'مساءً');
+                localStorage.setItem("userJoinedDate", "انضم في: " + formatted);
+            }
         }
 
         clearCache() {
@@ -259,7 +247,7 @@ window.addEventListener('load', function() {
             localStorage.removeItem("userJoinedDate");
             localStorage.removeItem("userSessionsHTMLCache");
             localStorage.removeItem("last_uid");
-            localStorage.removeItem("supabaseSessionId");
+            localStorage.removeItem("betterAuthSessionId");
         }
 
         showGuestUI() {
@@ -279,7 +267,7 @@ window.addEventListener('load', function() {
             var ic = document.getElementById("profile-icon");
             var um = document.getElementById("user-menu");
             var gm = document.getElementById("guest-menu");
-            var photo = user.user_metadata ? (user.user_metadata.avatar_url || user.user_metadata.picture) : null;
+            var photo = user.image || null;
 
             if (photo && av) {
                 av.src = photo;
@@ -297,7 +285,7 @@ window.addEventListener('load', function() {
 
         setupAccountPage(user) {
             var av = document.getElementById("account-avatar");
-            var photoUrl = user.user_metadata ? (user.user_metadata.avatar_url || user.user_metadata.picture) : null;
+            var photoUrl = user.image || null;
 
             if (av && photoUrl) {
                 av.src = photoUrl;
@@ -308,7 +296,6 @@ window.addEventListener('load', function() {
             var list = document.getElementById("sessions-list");
             if (list) {
                 this.refreshSessionsUI(user);
-                this.startLiveDeviceSync(user);
             }
             
             var content = document.getElementById('account-content');
@@ -321,8 +308,7 @@ window.addEventListener('load', function() {
         updateUserInfo(user) {
             var nameEl = document.getElementById("account-name");
             if (nameEl) {
-                var name = user.user_metadata ? (user.user_metadata.full_name || user.user_metadata.name) : null;
-                if (!name) name = user.email ? user.email.split('@')[0] : 'مستخدم';
+                var name = user.name || (user.email ? user.email.split('@')[0] : 'مستخدم');
                 nameEl.textContent = name;
             }
 
@@ -332,8 +318,8 @@ window.addEventListener('load', function() {
             }
 
             var joinedEl = document.getElementById("account-joined-date");
-            if (joinedEl) {
-                var date = new Date(user.created_at);
+            if (joinedEl && user.createdAt) {
+                var date = new Date(user.createdAt);
                 var formatted = date.toLocaleString('ar-u-nu-latn', {
                     year: 'numeric', month: 'numeric', day: 'numeric',
                     hour: 'numeric', minute: 'numeric', hour12: true
@@ -347,42 +333,44 @@ window.addEventListener('load', function() {
             var list = document.getElementById("sessions-list");
             if (!list) return;
 
-            this.supabase
-                .from('sessions')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .then(function(result) {
-                    var sessions = result.data;
-                    if (sessions && sessions.length > 0) {
-                        var sid = localStorage.getItem("supabaseSessionId");
-                        var htmlContent = sessions.map(function(s) {
-                            var isCurr = s.id === sid;
-                            var time = new Date(s.created_at).toLocaleString('ar-u-nu-latn', {
-                                hour: 'numeric', minute: 'numeric', hour12: true
-                            }).replace('ص', 'AM').replace('م', 'PM');
+            // جلب الجلسات من API
+            fetch(self.config.apiUrl + '/list-sessions', {
+                credentials: 'include'
+            }).then(function(res) {
+                return res.json();
+            }).then(function(data) {
+                var sessions = data.sessions || [];
+                if (sessions && sessions.length > 0) {
+                    var sid = localStorage.getItem("betterAuthSessionId");
+                    var htmlContent = sessions.map(function(s) {
+                        var isCurr = s.id === sid;
+                        var time = new Date(s.createdAt).toLocaleString('ar-u-nu-latn', {
+                            hour: 'numeric', minute: 'numeric', hour12: true
+                        }).replace('ص', 'AM').replace('م', 'PM');
 
-                            var domainLine = s.domain ? 
-                                '<div class="session-detail-line">' + self.icons.globe + ' <span>الموقع: ' + self.escapeHtml(s.domain) + '</span></div>' : '';
+                        var domainLine = s.domain ? 
+                            '<div class="session-detail-line">' + self.icons.globe + ' <span>الموقع: ' + self.escapeHtml(s.domain) + '</span></div>' : '';
 
-                            return '<div class="session-item" id="session-' + s.id + '">' +
-                                '<div class="session-details">' +
-                                    '<div class="session-detail-line">' + self.icons.clock + ' <span>الوقت: ' + time + '</span></div>' +
-                                    '<div class="session-detail-line">' + self.icons.device + ' <span>نظام التشغيل: ' + self.escapeHtml(s.os) + '</span></div>' +
-                                    '<div class="session-detail-line">' + self.icons.location + ' <span>العنوان: ' + self.escapeHtml(s.ip) + '</span></div>' +
-                                    domainLine +
-                                    (isCurr ? '<div class="session-detail-line current-session-indicator">' + self.icons.check + ' <span>جلستك الحالية</span></div>' : '') +
-                                '</div>' +
-                                '<button class="terminate-btn ' + (isCurr ? 'icon-current' : 'icon-terminate') + '" onclick="window.supabaseAuth.handleDeleteSession(\'' + s.id + '\')"></button>' +
-                            '</div>';
-                        }).join('');
+                        return '<div class="session-item" id="session-' + s.id + '">' +
+                            '<div class="session-details">' +
+                                '<div class="session-detail-line">' + self.icons.clock + ' <span>الوقت: ' + time + '</span></div>' +
+                                '<div class="session-detail-line">' + self.icons.device + ' <span>نظام التشغيل: ' + self.escapeHtml(s.os || 'Unknown') + '</span></div>' +
+                                '<div class="session-detail-line">' + self.icons.location + ' <span>العنوان: ' + self.escapeHtml(s.ip || 'Unknown') + '</span></div>' +
+                                domainLine +
+                                (isCurr ? '<div class="session-detail-line current-session-indicator">' + self.icons.check + ' <span>جلستك الحالية</span></div>' : '') +
+                            '</div>' +
+                            '<button class="terminate-btn ' + (isCurr ? 'icon-current' : 'icon-terminate') + '" onclick="window.betterAuth.handleDeleteSession(\'' + s.id + '\')"></button>' +
+                        '</div>';
+                    }).join('');
 
-                        localStorage.setItem("userSessionsHTMLCache", htmlContent);
-                        list.innerHTML = htmlContent;
-                    } else {
-                        list.innerHTML = '<p style="text-align:center;color:#888;">لا توجد جلسات نشطة</p>';
-                    }
-                });
+                    localStorage.setItem("userSessionsHTMLCache", htmlContent);
+                    list.innerHTML = htmlContent;
+                } else {
+                    list.innerHTML = '<p style="text-align:center;color:#888;">لا توجد جلسات نشطة</p>';
+                }
+            }).catch(function(err) {
+                console.error('Error loading sessions:', err);
+            });
         }
 
         escapeHtml(text) {
@@ -403,7 +391,7 @@ window.addEventListener('load', function() {
                 }
                 if (event.key === 'session_deleted') {
                     var deletedId = event.newValue;
-                    var mySessionId = localStorage.getItem("supabaseSessionId");
+                    var mySessionId = localStorage.getItem("betterAuthSessionId");
                     if (deletedId === mySessionId) {
                         self.forceLogout();
                     }
@@ -414,8 +402,9 @@ window.addEventListener('load', function() {
         setupBeforeUnload() {
             var self = this;
             window.addEventListener('beforeunload', function() {
-                if (self.channel) try { self.supabase.removeChannel(self.channel); } catch (e) {}
-                if (self.globalChannel) try { self.supabase.removeChannel(self.globalChannel); } catch (e) {}
+                if (self.sessionCheckInterval) {
+                    clearInterval(self.sessionCheckInterval);
+                }
             });
         }
 
@@ -460,73 +449,50 @@ window.addEventListener('load', function() {
                     self.loginWithGoogle();
                     return;
                 }
-                
-                if (target.id === "github-signin-btn") {
-                    e.preventDefault();
-                    self.loginWithGitHub();
-                    return;
-                }
             }, true);
         }
 
         loginWithGoogle() {
-            if (!this.supabase) return;
-            this.supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: { 
-                    redirectTo: window.location.origin + '/account',
-                    queryParams: { prompt: 'select_account' },
-                    skipBrowserRedirect: false
-                }
-            });
-        }
-
-        loginWithGitHub() {
-            if (!this.supabase) return;
-            this.supabase.auth.signInWithOAuth({
-                provider: 'github',
-                options: { redirectTo: window.location.origin }
-            });
+            window.location.href = this.config.apiUrl + '/sign-in/social/google';
         }
 
         localLogout() {
             var self = this;
-            var sid = localStorage.getItem("supabaseSessionId");
-            if (sid && this.supabase) {
-                this.supabase.from('sessions').delete().eq('id', sid).then(function() {
-                    self.finishLogout();
-                }).catch(function() {
-                    self.finishLogout();
-                });
-            } else {
-                this.finishLogout();
-            }
+            var sid = localStorage.getItem("betterAuthSessionId");
+            
+            fetch(self.config.apiUrl + '/sign-out', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(function() {
+                self.finishLogout();
+            }).catch(function() {
+                self.finishLogout();
+            });
         }
 
         forceLogout() {
             var self = this;
             this.clearCache();
             this.showGuestUI();
-            if (this.supabase) {
-                this.supabase.auth.signOut({ scope: 'local' }).then(function() {
-                    self.doRedirect();
-                });
-            } else {
-                this.doRedirect();
-            }
+            
+            fetch(self.config.apiUrl + '/sign-out', {
+                method: 'POST',
+                credentials: 'include'
+            }).then(function() {
+                self.doRedirect();
+            }).catch(function() {
+                self.doRedirect();
+            });
         }
 
         finishLogout() {
             var self = this;
             this.clearCache();
             this.showGuestUI();
-            if (this.supabase) {
-                this.supabase.auth.signOut({ scope: 'local' }).then(function() {
-                    self.doRedirect();
-                });
-            } else {
-                this.doRedirect();
-            }
+            this.doRedirect();
         }
 
         doRedirect() {
@@ -572,99 +538,45 @@ window.addEventListener('load', function() {
             var fingerprint = this.getDeviceFingerprint();
             var os = this.getOS();
             
-            this.supabase
-                .from('sessions')
-                .select('id, fingerprint')
-                .eq('user_id', user.id)
-                .eq('fingerprint', fingerprint)
-                .limit(1)
-                .then(function(result) {
-                    var existingSessions = result.data;
-                    if (existingSessions && existingSessions.length > 0) {
-                        var sessionId = existingSessions[0].id;
-                        self.fetchIP().then(function(ip) {
-                            self.supabase.from('sessions').update({ 
-                                last_active: new Date().toISOString(),
-                                ip: ip, 
-                                domain: window.location.hostname, 
-                                os: os
-                            }).eq('id', sessionId);
-                        });
-                        localStorage.setItem("supabaseSessionId", sessionId);
-                        self.startGlobalSessionMonitoring(user);
-                    } else {
-                        self.fetchIP().then(function(ip) {
-                            self.supabase.from('sessions').insert([{
-                                user_id: user.id, 
-                                os: os, 
-                                ip: ip,
-                                domain: window.location.hostname, 
-                                fingerprint: fingerprint,
-                                last_active: new Date().toISOString()
-                            }]).select().then(function(result) {
-                                if (result.data && result.data[0]) {
-                                    localStorage.setItem("supabaseSessionId", result.data[0].id);
-                                    self.startGlobalSessionMonitoring(user);
-                                }
-                            });
-                        });
+            self.fetchIP().then(function(ip) {
+                fetch(self.config.apiUrl + '/sync-session', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fingerprint: fingerprint,
+                        os: os,
+                        ip: ip,
+                        domain: window.location.hostname
+                    })
+                }).then(function(res) {
+                    return res.json();
+                }).then(function(data) {
+                    if (data.sessionId) {
+                        localStorage.setItem("betterAuthSessionId", data.sessionId);
                     }
                 });
+            });
         }
 
-        startLiveDeviceSync(user) {
+        startSessionPolling() {
             var self = this;
-            if (this.channel) {
-                this.supabase.removeChannel(this.channel);
-            }
-            var channelName = 'sessions-sync-' + user.id + '-' + Date.now();
-            this.channel = this.supabase.channel(channelName)
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'sessions',
-                    filter: 'user_id=eq.' + user.id
-                }, function(payload) {
-                    var sid = localStorage.getItem("supabaseSessionId");
-                    if (payload.eventType === 'DELETE') {
-                        if (payload.old && payload.old.id === sid) {
-                            self.forceLogout();
-                        } else {
-                            self.refreshSessionsUI(user, true);
-                        }
-                    } else {
-                        self.refreshSessionsUI(user, true);
+            // فحص الجلسة كل 30 ثانية
+            this.sessionCheckInterval = setInterval(function() {
+                self.getCurrentSession().then(function(session) {
+                    if (!session) {
+                        self.forceLogout();
                     }
-                })
-                .subscribe();
-        }
-
-        startGlobalSessionMonitoring(user) {
-            var self = this;
-            var sid = localStorage.getItem("supabaseSessionId");
-            if (!sid) return;
-            
-            if (self.globalChannel) {
-                self.supabase.removeChannel(self.globalChannel);
-            }
-            
-            var channelName = 'my-session-' + sid + '-' + Date.now();
-            self.globalChannel = self.supabase.channel(channelName)
-                .on('postgres_changes', {
-                    event: 'DELETE',
-                    schema: 'public',
-                    table: 'sessions',
-                    filter: 'id=eq.' + sid
-                }, function(payload) {
-                    self.forceLogout();
-                })
-                .subscribe();
+                });
+            }, 30000);
         }
 
         handleDeleteSession(id) {
             var self = this;
             if (this._deletingSession) return;
-            var sid = localStorage.getItem("supabaseSessionId");
+            var sid = localStorage.getItem("betterAuthSessionId");
             var isCurrent = id === sid;
             var msg = isCurrent ? "سيتم تسجيل خروجك من هذا الجهاز فوراً." : "هل تريد إزالة هذا الجهاز من قائمة الأجهزة المتصلة؟";
 
@@ -675,10 +587,22 @@ window.addEventListener('load', function() {
                 if (isCurrent) {
                     self.localLogout();
                 } else {
-                    self.supabase.from('sessions').delete().eq('id', id).then(function() {
+                    fetch(self.config.apiUrl + '/delete-session', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ sessionId: id })
+                    }).then(function() {
                         localStorage.setItem('session_deleted', id);
                         setTimeout(function() { localStorage.removeItem('session_deleted'); }, 100);
                         setTimeout(function() { self._deletingSession = false; }, 1000);
+                        self.getCurrentSession().then(function(session) {
+                            if (session && session.user) {
+                                self.refreshSessionsUI(session.user, true);
+                            }
+                        });
                     }).catch(function() {
                         self._deletingSession = false;
                     });
@@ -738,10 +662,6 @@ window.addEventListener('load', function() {
                     setTimeout(checkGoogle, 500);
                     return;
                 }
-                if (!self.supabase) {
-                    setTimeout(checkGoogle, 500);
-                    return;
-                }
                 
                 self.generateNonce().then(function(nonceData) {
                     var nonce = nonceData[0];
@@ -759,20 +679,28 @@ window.addEventListener('load', function() {
                                 return;
                             }
                             
-                            self.supabase.auth.signInWithIdToken({
-                                provider: 'google',
-                                token: response.credential,
-                                nonce: self.currentNonce
+                            fetch(self.config.apiUrl + '/sign-in/social/google/callback', {
+                                method: 'POST',
+                                credentials: 'include',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    idToken: response.credential,
+                                    nonce: nonce
+                                })
+                            }).then(function(res) {
+                                return res.json();
                             }).then(function(result) {
                                 if (result.error) {
-                                    alert('فشل تسجيل الدخول: ' + result.error.message);
+                                    alert('فشل تسجيل الدخول: ' + result.error);
                                     self._isSigningIn = false;
                                     return;
                                 }
-                                if (result.data && result.data.user) {
-                                    self.cacheUserData(result.data.user);
-                                    self.updateHeaderUI(result.data.user);
-                                    self.handleSessionSync(result.data.user);
+                                if (result.user) {
+                                    self.cacheUserData(result.user);
+                                    self.updateHeaderUI(result.user);
+                                    self.handleSessionSync(result.user);
                                     try { window.google.accounts.id.cancel(); } catch (e) {}
                                     setTimeout(function() {
                                         if (window.location.pathname.includes('login')) {
@@ -782,6 +710,9 @@ window.addEventListener('load', function() {
                                         }
                                     }, 300);
                                 }
+                            }).catch(function(err) {
+                                console.error('Sign in error:', err);
+                                self._isSigningIn = false;
                             });
                         };
                         
@@ -816,5 +747,5 @@ window.addEventListener('load', function() {
             return "جهاز غير معروف";
         }
     }
-    new SupabaseAuthManager();
+    new BetterAuthManager();
 })();
